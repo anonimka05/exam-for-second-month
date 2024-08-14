@@ -1,70 +1,89 @@
 import { fetchData } from "../postgress/postgres.js";
 
+
+// Bu funksiyada barcha buyurtmalarni olishni amalga oshiramiz
 export async function getCustomers(req, res) {
-  const { customers } = req.params;
-
-  const foundeCustomer = await fetchData("SELECT * FROM customer;", customers);
-
-  res.status(201).send({
-    massage: "Success",
-    data: foundeCustomer,
+  const foundCustomers = await fetchData("SELECT * FROM customer");
+  
+  res.status(200).send({
+    message: "success",
+    data: foundCustomers,
   });
 }
 
+// Bu funksiyada ma'lum bir buyurtmani ID orqali olishni amalga oshiramiz
 export async function getCustomerById(req, res) {
-  const { customer_id } = req.params;
-
-  const foundeCustomerById = await fetchData(
+  const { customerId } = req.params;
+  
+  const foundCustomerById = await fetchData(
     "SELECT * FROM customer WHERE id = $1",
-    customer_id
+    customerId
   );
 
-  res.status(201).send({
-    massage: "Success",
-    data: foundeCustomerById,
+  res.status(200).send({
+    message: "success",
+    data: foundCustomerById,
   });
 }
 
+export async function createCustomer(req, res) {
+  console.log(req);
+  const { name, phone, email, address, category_id } = req.body;
+
+  // Buyurtmani ID orqali olish uchun SQL so'rovi
+  const creatCustomers = await fetchData(
+    `INSERT INTO customer (name, phone, email, address, category_id) values ($1, $2, $3, $4, $5) RETURNING * `,
+    name,
+    phone,
+    email,
+    address,
+    category_id
+  );
+  // console.log(creatCustomers);
+  res.status(201).send({
+    massage: "successfully created",
+    data: creatCustomers,
+  });
+}
+
+// Bu funksiyada mavjud buyurtmani ID orqali yangilashni amalga oshiramiz
 export async function updateCustomerById(req, res) {
-  const {
-    customer_id,
-    customer_name,
-    customer_phone,
-    customer_email,
-    customer_address,
-  } = req.params;
+  const { name, phone, email, address, category_id } = req.body;
+  const { id } = req.params;
 
-  const foundeForUpdate = await fetchData(
-    `UPDATE * FROM customer WHERE id=$1 values($2, $3, $4, $5)`,
-    customer_id[0]?.customer_id[0] ? customer_id : null,
-    customer_name[0]?.customer_name[0] ? customer_name : null,
-    customer_phone[0]?.customer_phone[0] ? customer_phone : null,
-    customer_email[0]?.customer_email[0] ? customer_email : null,
-    customer_address[0]?.customer_address[0] ? customer_address : null
+  const updatedCustomer = await fetchData(
+    "UPDATE customer SET name=$1, phone=$2, email=$3, address=$4, category_id=$5 WHERE id=$6 RETURNING *",
+    name,
+    phone,
+    email,
+    address,
+    category_id,
+    id
   );
 
-  res.status(201).send({
-    massage: "successfully updated",
-    data: foundeForUpdate,
+  res.status(200).send({
+    message: "successfully updated",
+    data: updatedCustomer,
   });
 }
 
-export async function deleteCustomerByID(req, res) {
-  const { customer_id } = req.params;
+export async function deleteCustomerById(req, res) {
+  const { customerId } = req.params;
 
-  const foundeDeleteCustomer = await fetchData(
-    `DELETE * from customer WHERE id = $1`,
-    customer_id
+  const deletedCustomer = await fetchData(
+    "DELETE FROM customer WHERE id = $1 RETURNING *",
+    customerId
   );
 
-  if (foundeDeleteCustomer == 0) {
+  if (!deletedCustomer.length) {
     res.status(404).send({
-      massage: "Customer not found!",
+      message: "Customer not found!",
     });
+    return;
   }
 
-  res.status(201).send({
-    massage: "successfully deleted",
-    data: foundeDeleteCustomer,
+  res.status(200).send({
+    message: "successfully deleted",
+    data: deletedCustomer,
   });
 }
